@@ -128,23 +128,45 @@ input_size = X_train.shape[1]
 pytorch_model = CreditNet(input_features=input_size)
 print("\nNeural Network Model Architecture:")
 print(pytorch_model)
-
 # --- 5. Train the PyTorch Model ---
+
+# Detect GPU availability
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Training on: {device}")
+
+# Move model to device
+pytorch_model = CreditNet(input_features=input_size).to(device)
+
+# Define loss function and optimizer
 criterion = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(pytorch_model.parameters(), lr=0.001)
 
 num_epochs = 50
+
 for epoch in range(num_epochs):
     pytorch_model.train()
+    epoch_loss = 0
+
     for features, labels in train_loader:
+        # Move data to GPU if available
+        features = features.to(device)
+        labels = labels.to(device)
+
+        # Forward pass
         outputs = pytorch_model(features)
         loss = criterion(outputs, labels)
+
+        # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    if (epoch + 1) % 10 == 0:
-        print(f'PyTorch Model - Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
 
+        epoch_loss += loss.item()
+
+    # Print average loss every 10 epochs
+    if (epoch + 1) % 10 == 0:
+        avg_loss = epoch_loss / len(train_loader)
+        print(f"Epoch [{epoch+1}/{num_epochs}] | Avg Loss: {avg_loss:.4f}")
 
 # --- 6. Evaluate the PyTorch Model ---
 pytorch_model.eval()
